@@ -119,9 +119,10 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const SizedBox(height: 32),
                   const AuthHeader(
-                    icon: Icons.lock_open_outlined,
+                    icon: Icons.house,
                     title: 'Selamat Datang',
                     subtitle: 'Masuk ke akun Anda untuk melanjutkan',
+                    iconColor: AppColors.primary,
                   ),
                   const SizedBox(height: 32),
                   CustomTextField(
