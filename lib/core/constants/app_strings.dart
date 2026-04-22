@@ -1,6 +1,6 @@
 class AppStrings {
   // App
-  static const String appName = 'Warmido';
+  static const String appName = 'Matrial Disaster';
 
   // Auth
   static const String register = 'Daftar';
@@ -22,7 +22,7 @@ class AppStrings {
   static const String emailVerificationResent = 'Email verifikasi sudah dikirim ulang';
 
   // Hints
-  static const String emailHint = 'fufufafa@gmail.com';
+  static const String emailHint = 'contoh@gmail.com';
   static const String passwordHint = 'Minimal 8 karakter';
   static const String nameHint = 'Masukkan nama lengkap';
 
