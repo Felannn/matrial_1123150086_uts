@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import 'package:matrial_1123150086_uts/core/routes/app_router.dart';
 import 'package:matrial_1123150086_uts/core/shared/widgets/auth_header.dart';
 import 'package:matrial_1123150086_uts/core/shared/widgets/custom_button.dart';
@@ -84,7 +85,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 title: 'Verifikasi Email Kamu',
                 subtitle:
                     'Kami sudah mengirim link verifikasi ke email di bawah ini.',
-                iconColor: Colors.orange,
+                iconColor: AppColors.info,
               ),
               const SizedBox(height: 24),
 
@@ -95,9 +96,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppColors.primaryLight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Text(
                   user?.email ?? '-',
@@ -121,7 +122,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                   const SizedBox(width: 12),
                   Text(
                     'Menunggu konfirmasi...',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import 'package:matrial_1123150086_uts/core/routes/app_router.dart';
 import 'package:matrial_1123150086_uts/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matrial_1123150086_uts/features/cart/presentation/pages/cart_page.dart';
@@ -81,7 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              Icon(Icons.error_outline, size: 64, color: AppColors.error),
               const SizedBox(height: 16),
               Text(product.error ?? 'Terjadi kesalahan'),
               const SizedBox(height: 16),
@@ -126,7 +127,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           height: 120,
-                          color: Colors.grey.shade200,
+                          color: AppColors.primaryLight.withOpacity(0.1),
                           child: const Icon(
                             Icons.image_not_supported,
                             size: 40,
@@ -151,8 +152,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(height: 4),
                           Text(
                             'Rp ${p.price.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              color: Color(0xFF1565C0),
+                            style: TextStyle(
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -163,14 +164,14 @@ class _DashboardPageState extends State<DashboardPage> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: AppColors.primaryLight.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               p.category,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF1565C0),
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
