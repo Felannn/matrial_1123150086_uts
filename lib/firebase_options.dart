@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     projectId: 'matrial-a9155',
     storageBucket: 'matrial-a9155.firebasestorage.app',
   );
+
 }
