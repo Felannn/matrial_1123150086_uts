@@ -1,11 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import 'package:matrial_1123150086_uts/core/routes/app_router.dart';
+import 'package:matrial_1123150086_uts/core/services/biometric_service.dart';
+import 'package:matrial_1123150086_uts/core/services/secure_storage.dart';
 import 'package:matrial_1123150086_uts/features/auth/presentation/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isBiometricEnabled = false;
+  bool _isBiometricSupported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSettings();
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    final isSupported = await BiometricService().isBiometricAvailable();
+    final isEnabled = await SecureStorage.getBiometricStatus();
+    if (mounted) {
+      setState(() {
+        _isBiometricSupported = isSupported;
+        _isBiometricEnabled = isEnabled;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +145,61 @@ class ProfilePage extends StatelessWidget {
                     title: 'Pengaturan Notifikasi',
                     onTap: () {},
                   ),
+                  
+                  // Biometric Toggle Switch
+                  if (_isBiometricSupported) ...[
+                    const Divider(height: 1, indent: 56),
+                    SwitchListTile(
+                      secondary: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.fingerprint, color: AppColors.primary, size: 20),
+                      ),
+                      title: Text(
+                        'Login Biometrik / Sidik Jari',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                      value: _isBiometricEnabled,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      onChanged: (bool value) async {
+                        if (value) {
+                          // Authenticate to confirm enabling biometrics
+                          final authenticated = await BiometricService().authenticate(
+                            reason: 'Konfirmasi sidik jari Anda untuk mengaktifkan login biometrik',
+                          );
+                          if (authenticated) {
+                            await SecureStorage.saveBiometricStatus(true);
+                            setState(() {
+                              _isBiometricEnabled = true;
+                            });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Login sidik jari berhasil diaktifkan')),
+                              );
+                            }
+                          }
+                        } else {
+                          await SecureStorage.saveBiometricStatus(false);
+                          setState(() {
+                            _isBiometricEnabled = false;
+                          });
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Login sidik jari dinonaktifkan')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

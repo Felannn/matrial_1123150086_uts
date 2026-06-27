@@ -11,6 +11,8 @@ import 'package:matrial_1123150086_uts/core/shared/widgets/google_sign_in_button
 import 'package:matrial_1123150086_uts/core/shared/widgets/loading_overlay.dart';
 import 'package:matrial_1123150086_uts/features/auth/presentation/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:matrial_1123150086_uts/core/services/secure_storage.dart';
+import 'package:matrial_1123150086_uts/core/services/biometric_service.dart';
 
 
 
@@ -26,6 +28,33 @@ class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _showPass = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkBiometricAutoLogin();
+    });
+  }
+
+  Future<void> _checkBiometricAutoLogin() async {
+    final token = await SecureStorage.getToken();
+    final biometricEnabled = await SecureStorage.getBiometricStatus();
+
+    if (token != null && biometricEnabled) {
+      final biometricService = BiometricService();
+      final isAvailable = await biometricService.isBiometricAvailable();
+      if (isAvailable) {
+        final authenticated = await biometricService.authenticate(
+          reason: 'Verifikasi sidik jari Anda untuk masuk kembali ke aplikasi',
+        );
+        if (authenticated) {
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, AppRouter.dashboard);
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -172,11 +201,33 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
                   const DividerWithText(text: 'atau masuk dengan'),
                   const SizedBox(height: 20),
-                  GoogleSignInButton(
+                   GoogleSignInButton(
                     onPressed: _loginGoogle,
                     isLoading: isLoading,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  FutureBuilder<bool>(
+                    future: SecureStorage.getBiometricStatus(),
+                    builder: (context, snapshot) {
+                      if (snapshot.data == true) {
+                        return Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.fingerprint, size: 56, color: AppColors.primary),
+                              onPressed: _checkBiometricAutoLogin,
+                              tooltip: 'Masuk dengan Sidik Jari',
+                            ),
+                            const Text(
+                              'Masuk dengan Sidik Jari',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
