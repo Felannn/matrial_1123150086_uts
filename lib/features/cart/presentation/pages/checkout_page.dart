@@ -31,7 +31,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (success) {
         // Refresh local cart state in provider (since it was cleared in backend)
-        context.read<CartProvider>().clearCart();
+        context.read<CartProvider>().clearLocalCart();
 
         Navigator.pushReplacement(
           context,

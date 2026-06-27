@@ -139,4 +139,10 @@ class CartProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Bersihkan data keranjang lokal setelah checkout sukses
+  void clearLocalCart() {
+    _items.clear();
+    notifyListeners();
+  }
 }
