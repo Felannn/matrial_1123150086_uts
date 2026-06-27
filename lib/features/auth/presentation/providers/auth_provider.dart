@@ -176,6 +176,19 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  // ─── Restore Session (Biometric) ─────────────────────────
+  Future<bool> restoreSession() async {
+    final token = await SecureStorage.getToken();
+    if (token != null && _auth.currentUser != null) {
+      _status = AuthStatus.authenticated;
+      _firebaseUser = _auth.currentUser;
+      _backendToken = token;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
   // ─── Logout ───────────────────────────────────────────────
   Future<void> logout() async {
     await _auth.signOut();

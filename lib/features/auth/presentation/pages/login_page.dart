@@ -50,6 +50,7 @@ class _LoginPageState extends State<LoginPage> {
         );
         if (authenticated) {
           if (!mounted) return;
+          await context.read<AuthProvider>().restoreSession();
           Navigator.pushReplacementNamed(context, AppRouter.dashboard);
         }
       }
