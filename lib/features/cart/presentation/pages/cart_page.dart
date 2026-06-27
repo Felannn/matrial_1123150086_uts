@@ -4,8 +4,21 @@ import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import '../providers/cart_provider.dart';
 import 'checkout_page.dart';
 
-class CartPage extends StatelessWidget {
+class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
+
+  @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CartProvider>().fetchCart();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +42,11 @@ class CartPage extends StatelessWidget {
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, _) {
+          if (cartProvider.isLoading && cartProvider.items.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
           if (cartProvider.items.isEmpty) {
             return Center(
               child: Column(
