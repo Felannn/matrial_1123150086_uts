@@ -5,6 +5,7 @@ import 'package:matrial_1123150086_uts/features/auth/presentation/providers/auth
 import 'package:matrial_1123150086_uts/features/cart/presentation/pages/cart_page.dart';
 import 'package:matrial_1123150086_uts/features/cart/presentation/providers/cart_provider.dart';
 import 'package:matrial_1123150086_uts/features/dashboard/presentation/providers/product_provider.dart';
+import 'package:matrial_1123150086_uts/core/services/notification_service.dart';
 import 'package:provider/provider.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -185,11 +186,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                 p.price,
                                 imageUrl: p.imageUrl,
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${p.name} ditambahkan ke keranjang'),
-                                  duration: const Duration(seconds: 2),
-                                ),
+                              NotificationService().showCartNotification(
+                                title: 'Keranjang Belanja',
+                                body: '${p.name} berhasil ditambahkan ke keranjang.',
                               );
                             },
                             style: ElevatedButton.styleFrom(
