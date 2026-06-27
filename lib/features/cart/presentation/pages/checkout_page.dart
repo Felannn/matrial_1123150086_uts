@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import '../providers/cart_provider.dart';
+import '../providers/checkout_provider.dart';
 import 'payment_success_page.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -13,32 +14,43 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   bool _isProcessing = false;
+  String _selectedPaymentMethod = 'Dompet Kampus';
 
   void _processCheckout() async {
     setState(() {
       _isProcessing = true;
     });
 
-    // Simulasi proses pembayaran
-    await Future.delayed(const Duration(seconds: 2));
+    final checkoutProvider = context.read<CheckoutProvider>();
+    final success = await checkoutProvider.processCheckout(_selectedPaymentMethod);
 
     if (mounted) {
       setState(() {
         _isProcessing = false;
       });
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PaymentSuccessPage(
-            onSuccess: () {
-              // Clear cart setelah sukses
-              context.read<CartProvider>().clearCart();
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
+      if (success) {
+        // Refresh local cart state in provider (since it was cleared in backend)
+        context.read<CartProvider>().clearCart();
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentSuccessPage(
+              onSuccess: () {
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pembayaran gagal. Silakan coba lagi.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -297,6 +309,61 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Payment Method Section
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primaryLight.withOpacity(0.2),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.08),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Metode Pembayaran',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildPaymentMethodOption(
+                              id: 'Dompet Kampus',
+                              title: 'Dompet Kampus (E-Money)',
+                              subtitle: 'Bayar instan menggunakan saldo e-money Anda',
+                              icon: Icons.account_balance_wallet_outlined,
+                            ),
+                            const Divider(height: 16),
+                            _buildPaymentMethodOption(
+                              id: 'Bank Transfer',
+                              title: 'Transfer Bank (VA)',
+                              subtitle: 'Bayar via BCA, Mandiri, BRI, dll.',
+                              icon: Icons.account_balance_outlined,
+                            ),
+                            const Divider(height: 16),
+                            _buildPaymentMethodOption(
+                              id: 'QRIS',
+                              title: 'QRIS / E-Wallet',
+                              subtitle: 'Gopay, OVO, ShopeePay, LinkAja',
+                              icon: Icons.qr_code_2_outlined,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // Price Breakdown
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -447,6 +514,79 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPaymentMethodOption({
+    required String id,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedPaymentMethod == id;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = id;
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Radio<String>(
+              value: id,
+              groupValue: _selectedPaymentMethod,
+              activeColor: AppColors.primary,
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedPaymentMethod = val;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

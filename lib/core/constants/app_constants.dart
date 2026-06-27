@@ -11,6 +11,10 @@ class AppConstants{
   static const String cart = '/cart';
   static const String cartQuantity = '/cart/quantity';
 
+  // Transaction endpoints
+  static const String checkout = '/transactions/checkout';
+  static const String transactions = '/transactions';
+
   // Timeout
   static const int connectTimeout = 15000;
   static const int receiveTimeout = 15000;

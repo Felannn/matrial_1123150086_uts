@@ -1,55 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
+import 'package:matrial_1123150086_uts/core/constants/app_constants.dart';
+import 'package:matrial_1123150086_uts/core/services/dio_client.dart';
+import 'package:matrial_1123150086_uts/features/dashboard/data/models/transaction_model.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Data tiruan riwayat belanja
-    final List<Map<String, dynamic>> mockHistory = [
-      {
-        'id': 'TRX-98301',
-        'title': 'Semen Tiga Roda 50kg',
-        'date': '28 Jun 2026, 04:18',
-        'amount': 300000.0,
-        'status': 'Selesai',
-        'icon': Icons.build,
-      },
-      {
-        'id': 'TRX-98290',
-        'title': 'Batu Bata Merah (500 pcs)',
-        'date': '28 Jun 2026, 04:18',
-        'amount': 600000.0,
-        'status': 'Selesai',
-        'icon': Icons.home_repair_service,
-      },
-      {
-        'id': 'TRX-87421',
-        'title': 'Pasir Pasang Extra (1 Pick-up)',
-        'date': '24 Jun 2026, 13:05',
-        'amount': 750000.0,
-        'status': 'Selesai',
-        'icon': Icons.landscape,
-      },
-      {
-        'id': 'TRX-75390',
-        'title': 'Besi Beton 10mm (10 pcs)',
-        'date': '15 Jun 2026, 09:42',
-        'amount': 950000.0,
-        'status': 'Selesai',
-        'icon': Icons.grid_goldenratio,
-      },
-      {
-        'id': 'TRX-61109',
-        'title': 'Kuas Cat 3 Inch & Cat Tembok 5kg',
-        'date': '02 Jun 2026, 16:20',
-        'amount': 185000.0,
-        'status': 'Selesai',
-        'icon': Icons.format_paint,
-      },
-    ];
+  State<HistoryPage> createState() => _HistoryPageState();
+}
 
+class _HistoryPageState extends State<HistoryPage> {
+  List<TransactionModel> _transactions = [];
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTransactions();
+  }
+
+  Future<void> _fetchTransactions() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await DioClient.instance.get(AppConstants.transactions);
+      if (response.statusCode == 200) {
+        final data = response.data['data'] as List<dynamic>;
+        if (mounted) {
+          setState(() {
+            _transactions = data
+                .map((json) => TransactionModel.fromJson(json as Map<String, dynamic>))
+                .toList();
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _error = 'Gagal memuat riwayat transaksi';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Koneksi error: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      return '${dt.day} ${_getMonthName(dt.month)} ${dt.year}, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return isoString;
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return months[month - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -58,141 +86,271 @@ class HistoryPage extends StatelessWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
-      body: mockHistory.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.history_toggle_off,
-                    size: 80,
-                    color: AppColors.textSecondary.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Belum Ada Riwayat Belanja',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: mockHistory.length,
-              itemBuilder: (context, index) {
-                final item = mockHistory[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                      const SizedBox(height: 16),
+                      Text(_error!),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchTransactions,
+                        child: const Text('Coba Lagi'),
                       ),
                     ],
-                    border: Border.all(
-                      color: AppColors.primaryLight.withOpacity(0.1),
-                    ),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        item['icon'] as IconData,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                    ),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item['title'] as String,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'Rp ${(item['amount'] as double).toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                )
+              : _transactions.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item['date'] as String,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item['id'] as String,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary.withOpacity(0.8),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.history_toggle_off,
+                            size: 80,
+                            color: AppColors.textSecondary.withOpacity(0.5),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Selesai',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Belum Ada Riwayat Belanja',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchTransactions,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _transactions.length,
+                        itemBuilder: (context, index) {
+                          final tx = _transactions[index];
+                          // Ambil nama barang pertama atau summary barang
+                          String itemSummary = '';
+                          if (tx.items.isNotEmpty) {
+                            if (tx.items.length == 1) {
+                              itemSummary = tx.items[0].productName;
+                            } else {
+                              itemSummary = '${tx.items[0].productName} & ${tx.items.length - 1} item lainnya';
+                            }
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: AppColors.primaryLight.withOpacity(0.1),
+                              ),
+                            ),
+                            child: ExpansionTile(
+                              collapsedShape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(16)),
+                              ),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(16)),
+                              ),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLight.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.shopping_bag_outlined,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              title: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      itemSummary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Rp ${tx.totalAmount.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _formatDate(tx.date),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          tx.transactionNumber,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textSecondary.withOpacity(0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        tx.status,
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              children: [
+                                ...tx.items.map((item) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background.withOpacity(0.4),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryLight.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: item.imageUrl.isNotEmpty
+                                              ? ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    item.imageUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => const Icon(Icons.image),
+                                                  ),
+                                                )
+                                              : const Icon(Icons.image),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item.productName,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${item.quantity} x Rp ${item.price.toStringAsFixed(0)}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(
+                                          'Rp ${(item.price * item.quantity).toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background.withOpacity(0.2),
+                                    border: Border(
+                                      top: BorderSide(color: AppColors.divider.withOpacity(0.5), width: 0.5),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Metode Pembayaran:',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        tx.paymentMethod,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
     );
   }
 }
