@@ -82,26 +82,30 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
   }
 
   Future<void> _relaunchWalletKu() async {
-    final callbackUrl = Uri.encodeComponent('${AppConstants.baseUrl}/transactions/callback');
-    final uriString = 'dompetkampus://pay'
-        '?merchant_id=merchant_uts_1123150086'
-        '&merchant_name=Toko%20Material%20Felan'
-        '&amount=${widget.totalAmount.toStringAsFixed(0)}'
-        '&description=Pembayaran%20Order%20${widget.transactionNumber}'
-        '&reference=${widget.transactionNumber}'
-        '&callback=$callbackUrl';
+    final uri = Uri(
+      scheme: 'dompetkampus',
+      host: 'pay',
+      queryParameters: {
+        'merchant_id': 'merchant_uts_1123150086',
+        'merchant_name': 'Toko Material Felan',
+        'amount': widget.totalAmount.toStringAsFixed(0),
+        'description': 'Pembayaran Order ${widget.transactionNumber}',
+        'reference': widget.transactionNumber,
+        'callback': 'tokomaterial://callback',
+      },
+    );
 
     try {
-      final uri = Uri.parse(uriString);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Aplikasi Wallet Ku tidak ditemukan/terinstall.')),
         );
       }
     } catch (e) {
-      debugPrint('Gagal memicu deeplink: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuka Wallet Ku: Aplikasi tidak terinstall.')),
+      );
     }
   }
 
