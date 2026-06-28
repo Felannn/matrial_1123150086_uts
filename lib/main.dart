@@ -19,9 +19,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await NotificationService().init();
 
@@ -53,16 +51,27 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _initDeepLinkListener();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initDeepLinkListener();
+    });
   }
 
   void _initDeepLinkListener() {
-    _appLinks.uriLinkStream.listen((uri) {
-      debugPrint('[TokoMaterial] Deep link masuk: $uri');
-      if (uri.scheme == 'tokomaterial' && uri.host == 'callback') {
-        _handleCallback(uri);
-      }
-    });
+    try {
+      _appLinks.uriLinkStream.listen(
+        (uri) {
+          debugPrint('[TokoMaterial] Deep link masuk: $uri');
+          if (uri.scheme == 'tokomaterial' && uri.host == 'callback') {
+            _handleCallback(uri);
+          }
+        },
+        onError: (e) {
+          debugPrint('[TokoMaterial] Error deep link stream: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('[TokoMaterial] Gagal mendaftarkan deep link listener: $e');
+    }
   }
 
   String? _lastProcessedKey;
@@ -71,15 +80,23 @@ class _MyAppState extends State<MyApp> {
     final status = uri.queryParameters['status'];
     final reference = uri.queryParameters['reference'];
 
-    debugPrint('[TokoMaterial] Callback status: $status, reference: $reference');
+    debugPrint(
+      '[TokoMaterial] Callback status: $status, reference: $reference',
+    );
 
-    if (reference == null || reference.isEmpty || status == null || status.isEmpty) return;
+    if (reference == null ||
+        reference.isEmpty ||
+        status == null ||
+        status.isEmpty)
+      return;
 
     final callbackKey = '${reference}_$status';
 
     // Cegah pemrosesan ganda untuk kunci referensi + status yang sama dalam waktu singkat
     if (_lastProcessedKey == callbackKey) {
-      debugPrint('[TokoMaterial] Kunci callback $callbackKey sudah diproses, diabaikan.');
+      debugPrint(
+        '[TokoMaterial] Kunci callback $callbackKey sudah diproses, diabaikan.',
+      );
       return;
     }
     _lastProcessedKey = callbackKey;
@@ -91,15 +108,26 @@ class _MyAppState extends State<MyApp> {
       }
     });
 
+    // TUNDA 600ms agar Flutter selesai memulihkan UI setelah resume dari background
+    await Future.delayed(const Duration(milliseconds: 600));
+
     if (status == 'success') {
       try {
         final response = await DioClient.instance.get(
           '${AppConstants.baseUrl}/transactions/callback?status=success&reference=$reference',
         );
-        debugPrint('[TokoMaterial] Callback backend response: ${response.statusCode}');
+        debugPrint(
+          '[TokoMaterial] Callback backend response: ${response.statusCode}',
+        );
       } catch (e) {
         debugPrint('[TokoMaterial] Gagal update status ke backend: $e');
       }
+
+      // Kirim Notifikasi Latar Belakang (System Notification)
+      NotificationService().showPaymentNotification(
+        title: 'Pembayaran Berhasil 🎉',
+        body: 'Transaksi $reference berhasil dibayar via Wallet Ku.',
+      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _navigatorKey.currentState?.pushAndRemoveUntil(
@@ -117,28 +145,38 @@ class _MyAppState extends State<MyApp> {
       final message = status == 'cancelled'
           ? 'Pembayaran dibatalkan.'
           : 'Pembayaran gagal. Silakan coba lagi.';
-      
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      });
+
+      debugPrint('[TokoMaterial] Pembayaran status $status: $message');
+
+      // Kirim Notifikasi Latar Belakang (System Notification) - Silent (Hanya masuk drawer, tidak pop-up melayang)
+      NotificationService().showPaymentNotification(
+        title: status == 'cancelled'
+            ? 'Pembayaran Dibatalkan 🚫'
+            : 'Pembayaran Gagal ❌',
+        body: status == 'cancelled'
+            ? 'Pembayaran untuk transaksi $reference telah dibatalkan.'
+            : 'Transaksi $reference gagal diproses.',
+        isSilent: true,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey:           _navigatorKey,
-      scaffoldMessengerKey:   _scaffoldMessengerKey,
-      title:                  AppStrings.appName,
+      navigatorKey: _navigatorKey,
+      scaffoldMessengerKey: _scaffoldMessengerKey,
+      title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
-      theme:                  AppTheme.light,
-      initialRoute:           AppRouter.login,
-      routes:                 AppRouter.routes,
+      theme: AppTheme.light,
+      initialRoute: AppRouter.login,
+      routes: AppRouter.routes,
+      onGenerateRoute: (settings) {
+        final builder =
+            AppRouter.routes[settings.name] ??
+            AppRouter.routes[AppRouter.login]!;
+        return MaterialPageRoute(builder: builder, settings: settings);
+      },
     );
   }
 }
@@ -167,7 +205,6 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    body: Center(child: CircularProgressIndicator()),
-  );
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }

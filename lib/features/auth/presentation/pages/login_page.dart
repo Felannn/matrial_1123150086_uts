@@ -39,9 +39,11 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _checkBiometricAutoLogin() async {
     final token = await SecureStorage.getToken();
+    if (token == null) return;
+
     final biometricEnabled = await SecureStorage.getBiometricStatus();
 
-    if (token != null && biometricEnabled) {
+    if (biometricEnabled) {
       final biometricService = BiometricService();
       final isAvailable = await biometricService.isBiometricAvailable();
       if (isAvailable) {
@@ -53,7 +55,17 @@ class _LoginPageState extends State<LoginPage> {
           await context.read<AuthProvider>().restoreSession();
           Navigator.pushReplacementNamed(context, AppRouter.dashboard);
         }
+      } else {
+        // Biometrik tidak tersedia di hardware, tapi ada token
+        if (!mounted) return;
+        await context.read<AuthProvider>().restoreSession();
+        Navigator.pushReplacementNamed(context, AppRouter.dashboard);
       }
+    } else {
+      // Biometrik tidak aktif, tapi ada token (langsung masuk)
+      if (!mounted) return;
+      await context.read<AuthProvider>().restoreSession();
+      Navigator.pushReplacementNamed(context, AppRouter.dashboard);
     }
   }
 

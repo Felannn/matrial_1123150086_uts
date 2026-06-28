@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:matrial_1123150086_uts/core/guards/auth_guard.dart';
 import 'package:matrial_1123150086_uts/features/auth/presentation/pages/login_page.dart';
@@ -14,7 +13,7 @@ class AppRouter {
   static const String dashboard   = '/dashboard';
 
   static Map<String, WidgetBuilder> get routes => {
-    // splash:      (_) => const SplashPage(),
+    splash:      (_) => const LoginPage(),
     login:       (_) => const LoginPage(),
     register:    (_) => const RegisterPage(),
     verifyEmail: (_) => const VerifyEmailPage(),

@@ -74,4 +74,39 @@ class NotificationService {
       notificationDetails,
     );
   }
+
+  Future<void> showPaymentNotification({
+    required String title,
+    required String body,
+    bool isSilent = false,
+  }) async {
+    final AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'payment_channel', // channel id
+      'Status Pembayaran', // channel name
+      channelDescription: 'Notifikasi status transaksi pembayaran',
+      importance: isSilent ? Importance.low : Importance.max,
+      priority: isSilent ? Priority.low : Priority.high,
+      playSound: !isSilent,
+    );
+
+    final DarwinNotificationDetails iosNotificationDetails =
+        DarwinNotificationDetails(
+      presentAlert: !isSilent,
+      presentBadge: true,
+      presentSound: !isSilent,
+    );
+
+    final NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+      iOS: iosNotificationDetails,
+    );
+
+    await _notificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      notificationDetails,
+    );
+  }
 }
