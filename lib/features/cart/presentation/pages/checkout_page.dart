@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
+import 'package:matrial_1123150086_uts/core/constants/app_constants.dart';
 import '../providers/cart_provider.dart';
 import '../providers/checkout_provider.dart';
 import 'payment_success_page.dart';
+import 'awaiting_payment_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);
@@ -14,7 +17,7 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   bool _isProcessing = false;
-  String _selectedPaymentMethod = 'Dompet Kampus';
+  String _selectedPaymentMethod = 'Wallet Ku';
 
   void _processCheckout() async {
     setState(() {
@@ -22,6 +25,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     final checkoutProvider = context.read<CheckoutProvider>();
+    final totalAmount = context.read<CartProvider>().totalPrice;
     final success = await checkoutProvider.processCheckout(_selectedPaymentMethod);
 
     if (mounted) {
@@ -30,19 +34,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
       });
 
       if (success) {
+        final txNumber = checkoutProvider.orderId ?? 'TRX-${DateTime.now().millisecondsSinceEpoch}';
+
         // Refresh local cart state in provider (since it was cleared in backend)
         context.read<CartProvider>().clearLocalCart();
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentSuccessPage(
-              onSuccess: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
+        if (_selectedPaymentMethod == 'Wallet Ku') {
+          final callbackUrl = Uri.encodeComponent('${AppConstants.baseUrl}/transactions/callback');
+          final uriString = 'dompetkampus://pay'
+              '?merchant_id=merchant_uts_1123150086'
+              '&merchant_name=Toko%20Material%20Felan'
+              '&amount=${totalAmount.toStringAsFixed(0)}'
+              '&description=Pembayaran%20Order%20$txNumber'
+              '&reference=$txNumber'
+              '&callback=$callbackUrl';
+          
+          try {
+            final uri = Uri.parse(uriString);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Aplikasi Wallet Ku tidak ditemukan/terinstall.')),
+              );
+            }
+          } catch (e) {
+            debugPrint('Gagal memicu deeplink: $e');
+          }
+
+          // Arahkan ke AwaitingPaymentPage
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AwaitingPaymentPage(
+                transactionNumber: txNumber,
+                totalAmount: totalAmount,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Arahkan ke PaymentSuccessPage untuk metode lainnya
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentSuccessPage(
+                onSuccess: () {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                },
+              ),
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -341,9 +383,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             ),
                             const SizedBox(height: 12),
                             _buildPaymentMethodOption(
-                              id: 'Dompet Kampus',
-                              title: 'Dompet Kampus (E-Money)',
-                              subtitle: 'Bayar instan menggunakan saldo e-money Anda',
+                              id: 'Wallet Ku',
+                              title: 'Wallet Ku (E-Money)',
+                              subtitle: 'Bayar instan menggunakan saldo Wallet Ku Anda',
                               icon: Icons.account_balance_wallet_outlined,
                             ),
                             const Divider(height: 16),

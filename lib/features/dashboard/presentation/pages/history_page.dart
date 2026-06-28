@@ -3,6 +3,7 @@ import 'package:matrial_1123150086_uts/core/constants/app_colors.dart';
 import 'package:matrial_1123150086_uts/core/constants/app_constants.dart';
 import 'package:matrial_1123150086_uts/core/services/dio_client.dart';
 import 'package:matrial_1123150086_uts/features/dashboard/data/models/transaction_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -209,25 +210,31 @@ class _HistoryPageState extends State<HistoryPage> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _formatDate(tx.date),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _formatDate(tx.date),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          tx.transactionNumber,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.textSecondary.withOpacity(0.8),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            tx.transactionNumber,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary.withOpacity(0.8),
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
@@ -235,13 +242,13 @@ class _HistoryPageState extends State<HistoryPage> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.1),
+                                        color: _getStatusColor(tx.status).withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
                                         tx.status,
-                                        style: const TextStyle(
-                                          color: Colors.green,
+                                        style: TextStyle(
+                                          color: _getStatusColor(tx.status),
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -345,6 +352,24 @@ class _HistoryPageState extends State<HistoryPage> {
                                     ],
                                   ),
                                 ),
+                                if (tx.status == 'Menunggu Pembayaran') ...[
+                                  Container(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                    child: ElevatedButton.icon(
+                                      icon: const Icon(Icons.payment_rounded, size: 18),
+                                      label: const Text('Bayar Sekarang via Wallet Ku'),
+                                      onPressed: () => _payPendingTransaction(tx),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        minimumSize: const Size.fromHeight(40),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ]
                               ],
                             ),
                           );
@@ -352,5 +377,44 @@ class _HistoryPageState extends State<HistoryPage> {
                       ),
                     ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Selesai':
+        return Colors.green;
+      case 'Menunggu Pembayaran':
+        return Colors.orange;
+      case 'Gagal':
+        return Colors.red;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  Future<void> _payPendingTransaction(TransactionModel tx) async {
+    final callbackUrl = Uri.encodeComponent('${AppConstants.baseUrl}/transactions/callback');
+    final uriString = 'dompetkampus://pay'
+        '?merchant_id=merchant_uts_1123150086'
+        '&merchant_name=Toko%20Material%20Felan'
+        '&amount=${tx.totalAmount.toStringAsFixed(0)}'
+        '&description=Pembayaran%20Order%20${tx.transactionNumber}'
+        '&reference=${tx.transactionNumber}'
+        '&callback=$callbackUrl';
+
+    try {
+      final uri = Uri.parse(uriString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aplikasi Wallet Ku tidak ditemukan/terinstall.')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Gagal memicu deeplink: $e');
+    }
   }
 }
