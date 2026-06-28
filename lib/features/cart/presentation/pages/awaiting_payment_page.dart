@@ -111,8 +111,8 @@ class _AwaitingPaymentPageState extends State<AwaitingPaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Jangan biarkan back gesture
+    return PopScope(
+      canPop: false, // Jangan biarkan back gesture
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(

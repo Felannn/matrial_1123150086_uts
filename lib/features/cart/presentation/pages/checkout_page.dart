@@ -102,11 +102,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_isProcessing) return false;
-        return true;
-      },
+    return PopScope(
+      canPop: !_isProcessing,
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(

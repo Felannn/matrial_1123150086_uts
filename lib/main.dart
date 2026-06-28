@@ -48,6 +48,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final _appLinks = AppLinks();
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -64,13 +65,31 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  String? _lastProcessedKey;
+
   Future<void> _handleCallback(Uri uri) async {
     final status = uri.queryParameters['status'];
     final reference = uri.queryParameters['reference'];
 
     debugPrint('[TokoMaterial] Callback status: $status, reference: $reference');
 
-    if (reference == null || reference.isEmpty) return;
+    if (reference == null || reference.isEmpty || status == null || status.isEmpty) return;
+
+    final callbackKey = '${reference}_$status';
+
+    // Cegah pemrosesan ganda untuk kunci referensi + status yang sama dalam waktu singkat
+    if (_lastProcessedKey == callbackKey) {
+      debugPrint('[TokoMaterial] Kunci callback $callbackKey sudah diproses, diabaikan.');
+      return;
+    }
+    _lastProcessedKey = callbackKey;
+
+    // Bersihkan last processed setelah beberapa detik
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_lastProcessedKey == callbackKey) {
+        _lastProcessedKey = null;
+      }
+    });
 
     if (status == 'success') {
       try {
@@ -82,30 +101,31 @@ class _MyAppState extends State<MyApp> {
         debugPrint('[TokoMaterial] Gagal update status ke backend: $e');
       }
 
-      _navigatorKey.currentState?.pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => PaymentSuccessPage(
-            onSuccess: () {
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => PaymentSuccessPage(
+              onSuccess: () {
+                _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+              },
+            ),
           ),
-        ),
-        (route) => route.isFirst,
-      );
+          (route) => route.isFirst,
+        );
+      });
     } else {
       final message = status == 'cancelled'
           ? 'Pembayaran dibatalkan.'
           : 'Pembayaran gagal. Silakan coba lagi.';
       
-      final context = _navigatorKey.currentContext;
-      if (context != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(message),
             backgroundColor: Colors.orange,
           ),
         );
-      }
+      });
     }
   }
 
@@ -113,6 +133,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey:           _navigatorKey,
+      scaffoldMessengerKey:   _scaffoldMessengerKey,
       title:                  AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme:                  AppTheme.light,
