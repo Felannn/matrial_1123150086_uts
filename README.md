@@ -77,7 +77,7 @@ lib/
 
    bash
    flutter pub get
-   
+
 3. Sesuaikan konfigurasi baseUrl di file lib/core/constants/app_constants.dart dengan alamat IP server backend yang digunakan:
 
    dart
